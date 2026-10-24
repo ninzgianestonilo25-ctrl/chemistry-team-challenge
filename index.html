@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inorganic Chemistry Team Challenge</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#172033;background:#f3f6fb}
+*{box-sizing:border-box}body{margin:0}header{background:#172554;color:#fff;padding:18px 20px}
+header h1{margin:0;font-size:1.35rem}header p{margin:5px 0 0;color:#dbeafe;font-size:.92rem}
+main{max-width:1000px;margin:22px auto;padding:0 14px 40px}.panel{background:#fff;border:1px solid #dbe2ef;border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 3px 14px #0f172a0a}
+h2{font-size:1.12rem;margin:0 0 12px}h3{margin:0 0 8px;font-size:1rem}.muted{color:#64748b;font-size:.92rem}.row{display:flex;gap:12px;flex-wrap:wrap}.row>*{flex:1;min-width:180px}
+label{display:block;font-size:.88rem;font-weight:650;margin:10px 0 5px}input,select,textarea{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:11px;font:inherit;background:#fff;color:#172033}
+button{border:0;border-radius:9px;padding:11px 15px;font:inherit;font-weight:700;cursor:pointer;background:#1d4ed8;color:#fff;margin-top:12px}button.secondary{background:#e2e8f0;color:#172033}button.danger{background:#b91c1c}button:disabled{opacity:.45;cursor:not-allowed}
+.hidden{display:none!important}.notice{padding:11px 13px;border-radius:8px;background:#eff6ff;color:#1e40af;margin:10px 0}.error{background:#fef2f2;color:#991b1b}.success{background:#ecfdf5;color:#065f46}
+.pill{display:inline-block;border-radius:99px;background:#dbeafe;color:#1e40af;padding:4px 9px;font-size:.8rem;font-weight:700}
+.teams{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.team{border:1px solid #cbd5e1;border-radius:10px;padding:12px}.team strong{display:block;font-size:1.02rem}.score{font-size:1.6rem;font-weight:800;margin-top:4px}
+.question{font-size:1.25rem;line-height:1.45;font-weight:750;margin:14px 0}.options{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px;margin-top:14px}.option{padding:12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;text-align:left;color:#172033;font-weight:600;margin:0}.option.selected{border:2px solid #2563eb;background:#eff6ff}.option:disabled{opacity:1;cursor:default}
+.topline{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.small{font-size:.84rem}.footer{font-size:.82rem;color:#64748b;text-align:center;padding:10px}
+@media(max-width:520px){header h1{font-size:1.12rem}.panel{padding:14px}.question{font-size:1.1rem}}
+</style>
+</head>
+<body>
+<header><h1>Inorganic Chemistry Team Challenge</h1><p>Four rounds • Team collaboration • Live room codes</p></header>
+<main>
+<section id="configPanel" class="panel">
+<h2>Connect to your Firebase project</h2>
+<p class="muted">Paste the web-app configuration from Firebase Console. It is saved only in this browser. Each participant must enter the same configuration once on their own device.</p>
+<label for="configInput">Firebase configuration JSON</label>
+<textarea id="configInput" rows="5" placeholder='{"apiKey":"...","authDomain":"...","databaseURL":"https://YOUR-PROJECT-default-rtdb.firebaseio.com","projectId":"...","appId":"..."}'></textarea>
+<button id="connectBtn">Connect</button>
+<div id="configMessage" aria-live="polite"></div>
+</section>
+
+<section id="homePanel" class="panel hidden">
+<h2>Choose your role</h2>
+<div class="row">
+<div class="panel" style="margin:0;box-shadow:none">
+<h3>Host a game</h3><p class="muted">Create a room, share the code, and control the four rounds.</p>
+<button id="createBtn">Create room</button>
+</div>
+<div class="panel" style="margin:0;box-shadow:none">
+<h3>Join a game</h3><p class="muted">Enter the room code given by your instructor.</p>
+<label for="roomCodeInput">Room code</label><input id="roomCodeInput" maxlength="6" placeholder="e.g. A7K2Q9" autocomplete="off">
+<label for="playerNameInput">Your name</label><input id="playerNameInput" maxlength="24" placeholder="Nickname or first name">
+<label for="teamSelect">Team</label><select id="teamSelect"><option value="teamA">Team A</option><option value="teamB">Team B</option><option value="teamC">Team C</option><option value="teamD">Team D</option><option value="teamE">Team E</option><option value="teamF">Team F</option></select>
+<button id="joinBtn">Join room</button>
+</div>
+</div>
+</section>
+
+<section id="gamePanel" class="hidden">
+<div class="panel">
+<div class="topline"><div><span class="pill" id="rolePill">PLAYER</span> <span class="muted">Room code</span> <strong id="roomCodeDisplay"></strong></div><button id="leaveBtn" class="secondary">Leave room</button></div>
+<div id="roomStatus" class="notice">Waiting for host…</div>
+<div class="topline"><div><h2 id="roundTitle">Lobby</h2><div class="muted" id="roundSub"></div></div><div id="hostControls"></div></div>
+</div>
+<div class="panel" id="lobbyPanel">
+<h2>Teams</h2><p class="muted">Players on the same team can discuss answers in Google Meet. Each team submits one answer per question.</p>
+<div id="lobbyTeams" class="teams"></div>
+</div>
+<div class="panel hidden" id="questionPanel">
+<div class="topline"><span class="pill" id="roundPill">ROUND 1</span><span class="muted" id="questionCounter"></span></div>
+<div class="question" id="questionText"></div>
+<div id="questionPrompt" class="muted"></div>
+<div id="optionsArea" class="options"></div>
+<div id="answerMessage" class="notice hidden"></div>
+<div id="revealArea" class="hidden"></div>
+<div id="hostAnswerSummary" class="hidden"></div>
+</div>
+<div class="panel">
+<h2>Live team scores</h2><div id="scoreTeams" class="teams"></div>
+</div>
+<div class="panel hidden" id="finalPanel"><h2>Game complete</h2><div id="finalMessage"></div><button id="playAgainBtn" class="secondary">Back to home</button></div>
+</section>
+<div class="footer">Classroom prototype • Do not use sensitive personal information in player names.</div>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script>
+(() => {
+"use strict";
+const TEAM_IDS = ["teamA","teamB","teamC","teamD","teamE","teamF"];
+const TEAM_NAMES = {"teamA":"Team A","teamB":"Team B","teamC":"Team C","teamD":"Team D","teamE":"Team E","teamF":"Team F"};
+const ROUNDS = [
+ {title:"Round 1 — Periodic Table Identification", subtitle:"Identify elements, groups, periods, and blocks.", questions:[
+  {q:"An element has atomic number 17. Identify the element and its block.", prompt:"Choose the most complete answer.", options:["Chlorine, p-block","Sulfur, p-block","Argon, s-block","Potassium, d-block"], correct:0, explain:"Chlorine has atomic number 17 and its last electron enters a p subshell."},
+  {q:"Which group and period contain sodium (Na)?", prompt:"Use the standard 1–18 group numbering.", options:["Group 1, Period 3","Group 2, Period 3","Group 1, Period 2","Group 17, Period 3"], correct:0, explain:"Sodium is an alkali metal in Group 1 and Period 3."},
+  {q:"Which element has the electron configuration 1s² 2s² 2p⁶ 3s² 3p⁵?", prompt:"Count the total number of electrons.", options:["Sulfur","Argon","Chlorine","Potassium"], correct:2, explain:"The configuration contains 17 electrons, which identifies chlorine."}
+ ]},
+ {title:"Round 2 — Periodic Trends", subtitle:"Compare periodic properties and explain the pattern.", questions:[
+  {q:"Which element has the largest atomic radius among Na, Mg, Al, and Cl?", prompt:"All four elements are in Period 3.", options:["Na","Mg","Al","Cl"], correct:0, explain:"Atomic radius generally decreases from left to right across a period as effective nuclear attraction increases."},
+  {q:"Which element is more electronegative: sulfur or oxygen?", prompt:"Compare their positions in Group 16.", options:["Sulfur","Oxygen","They are equal","There is no trend"], correct:1, explain:"Electronegativity generally increases up a group; oxygen is above sulfur."},
+  {q:"Why can iron commonly form both Fe²⁺ and Fe³⁺ ions?", prompt:"Think about the electrons involved in transition-metal ion formation.", options:["It can lose different numbers of 4s and 3d electrons","It has no valence electrons","It has only one occupied shell","It always gains three electrons"], correct:0, explain:"Iron can lose its two 4s electrons and can also lose one additional 3d electron."}
+ ]},
+ {title:"Round 3 — Electron Configuration", subtitle:"Apply orbital-filling rules and write configurations.", questions:[
+  {q:"What is the full ground-state electron configuration of magnesium (Z = 12)?", prompt:"Fill lower-energy orbitals first.", options:["1s² 2s² 2p⁶ 3s²","1s² 2s² 2p⁶ 3s¹","1s² 2s² 2p⁵ 3s²","1s² 2s² 2p⁶ 3p²"], correct:0, explain:"Magnesium has 12 electrons: 2 + 2 + 6 + 2."},
+  {q:"Which statement describes Hund’s rule for equal-energy orbitals?", prompt:"Consider the three p orbitals before any pairing occurs.", options:["Electrons occupy separate orbitals with parallel spins first","Electrons always pair in one orbital first","An orbital can hold four electrons","Higher-energy orbitals fill before lower-energy ones"], correct:0, explain:"Hund’s rule favors singly occupying degenerate orbitals with parallel spins before pairing."},
+  {q:"Vanadium has atomic number 23. What is its abbreviated ground-state electron configuration?", prompt:"Use the noble-gas core [Ar].", options:["[Ar] 3d³ 4s²","[Ar] 3d⁵","[Ne] 3s² 3p³","[Kr] 4d³ 5s²"], correct:0, explain:"After [Ar] (18 electrons), vanadium has 3d³ 4s², totaling 23 electrons."}
+ ]},
+ {title:"Round 4 — Quantum Number Mission", subtitle:"Determine n, l, mₗ, and mₛ for electrons.", questions:[
+  {q:"For an electron in a 3p subshell, what are n and l?", prompt:"For subshell labels, s = 0, p = 1, d = 2, f = 3.", options:["n = 3, l = 1","n = 3, l = 0","n = 2, l = 1","n = 1, l = 3"], correct:0, explain:"The leading number gives n = 3, and p corresponds to l = 1."},
+  {q:"For a 3d electron, which set gives the allowed values of mₗ?", prompt:"mₗ takes integer values from −l to +l.", options:["−2, −1, 0, +1, +2","−1, 0, +1","0 only","−3, −2, −1, 0, +1, +2, +3"], correct:0, explain:"For a d subshell, l = 2, so mₗ can be −2, −1, 0, +1, or +2."},
+  {q:"Two electrons occupy the same orbital. Which statement must be true?", prompt:"Apply the Pauli exclusion principle.", options:["They have opposite spins","They have the same spin","They must have different principal quantum numbers","One must be in a d subshell"], correct:0, explain:"Two electrons in the same orbital have the same n, l, and mₗ, so their spins must be opposite."}
+ ]}
+];
+let app, db, user = null, roomCode = null, roomRef = null, isHost = false, myTeam = null, myName = "", roomData = null, listener = null, submitting = false;
+const $ = id => document.getElementById(id);
+const show = (id, yes=true) => $(id).classList.toggle("hidden", !yes);
+const setMessage = (id, msg, error=false) => { const el=$(id); el.textContent=msg; el.className="notice"+(error?" error":""); show(id,true); };
+const currentQuestion = () => {
+ if (!roomData) return null;
+ const ri = roomData.roundIndex || 0, qi = roomData.questionIndex || 0;
+ return ROUNDS[ri] && ROUNDS[ri].questions[qi] ? ROUNDS[ri].questions[qi] : null;
+};
+function randomCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<6;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s;}
+function questionKey(){return "r"+roomData.roundIndex+"q"+roomData.questionIndex;}
+function teamAnswer(){return roomData && roomData.answers && roomData.answers[questionKey()] && roomData.answers[questionKey()][myTeam];}
+async function connect(){
+ try{
+  const cfg=JSON.parse($("configInput").value);
+  if(!cfg.apiKey || !cfg.databaseURL || !cfg.projectId) throw new Error("Configuration must include apiKey, databaseURL, and projectId.");
+  if(firebase.apps.length) await firebase.app().delete();
+  app=firebase.initializeApp(cfg); await firebase.auth().signInAnonymously(); user=firebase.auth().currentUser; db=firebase.database();
+  localStorage.setItem("chemTeamFirebaseConfig",JSON.stringify(cfg));
+  $("configMessage").className="notice success";$("configMessage").textContent="Connected. You can host a room or join one.";
+  show("homePanel",true); $("connectBtn").textContent="Reconnect";
+ }catch(e){setMessage("configMessage",e.message||String(e),true);}
+}
+async function createRoom(){
+ if(!user){setMessage("configMessage","Connect to Firebase first.",true);return;}
+ $("createBtn").disabled=true;
+ try{
+  let code, ref;
+  for(let i=0;i<8;i++){code=randomCode();ref=db.ref("rooms/"+code);const snap=await ref.once("value");if(!snap.exists())break;code=null;}
+  if(!code)throw new Error("Could not create a unique room code. Try again.");
+  const teams={};TEAM_IDS.forEach(id=>teams[id]={name:TEAM_NAMES[id],score:0});
+  const data={hostUid:user.uid,createdAt:firebase.database.ServerValue.TIMESTAMP,status:"lobby",roundIndex:0,questionIndex:0,revealed:false,teams:teams,players:{},answers:{}};
+  await ref.set(data);roomCode=code;roomRef=ref;isHost=true;myTeam=null;myName="Host";enterGame();
+ }catch(e){setMessage("configMessage",e.message||String(e),true);}finally{$("createBtn").disabled=false;}
+}
+async function joinRoom(){
+ if(!user)return;
+ const code=$("roomCodeInput").value.trim().toUpperCase(), name=$("playerNameInput").value.trim(), team=$("teamSelect").value;
+ if(!/^[A-Z0-9]{6}$/.test(code)){setMessage("configMessage","Enter the six-character room code.",true);return;}
+ if(!name){setMessage("configMessage","Enter a name or nickname.",true);return;}
+ $("joinBtn").disabled=true;
+ try{
+  const ref=db.ref("rooms/"+code), snap=await ref.once("value");
+  if(!snap.exists())throw new Error("Room not found. Check the code with your host.");
+  const data=snap.val();if(data.status==="finished")throw new Error("This game has finished.");
+  roomCode=code;roomRef=ref;isHost=false;myTeam=team;myName=name;
+  await ref.child("players/"+user.uid).set({name:name,team:team,joinedAt:firebase.database.ServerValue.TIMESTAMP});
+  enterGame();
+ }catch(e){setMessage("configMessage",e.message||String(e),true);}finally{$("joinBtn").disabled=false;}
+}
+function enterGame(){
+ show("configPanel",false);show("homePanel",false);show("gamePanel",true);
+ $("roomCodeDisplay").textContent=roomCode;$("rolePill").textContent=isHost?"HOST":(TEAM_NAMES[myTeam]||"PLAYER");
+ if(listener&&roomRef)roomRef.off("value",listener);
+ listener=snap=>{roomData=snap.val();if(!roomData){setMessage("roomStatus","The room no longer exists.",true);return;}render();};
+ roomRef.on("value",listener,err=>setMessage("roomStatus","Realtime connection error: "+err.message,true));
+}
+function render(){
+ if(!roomData)return;
+ $("roomCodeDisplay").textContent=roomCode;
+ $("rolePill").textContent=isHost?"HOST":(TEAM_NAMES[myTeam]||"PLAYER");
+ const lobby=roomData.status==="lobby", playing=roomData.status==="playing", finished=roomData.status==="finished";
+ show("lobbyPanel",lobby);show("questionPanel",playing);show("finalPanel",finished);
+ $("roomStatus").textContent=lobby?"Waiting in lobby. Share the room code with students.":playing?(roomData.revealed?"Answer revealed. Host can continue to the next question.":"Question is live. Discuss with your team and submit one answer."):"The game has ended.";
+ $("roundTitle").textContent=lobby?"Lobby":finished?"Final results":ROUNDS[roomData.roundIndex].title;
+ $("roundSub").textContent=lobby?"4 rounds • 12 questions • one team submission per question":playing?ROUNDS[roomData.roundIndex].subtitle:"Final leaderboard";
+ $("hostControls").innerHTML="";
+ if(isHost){
+  const btn=document.createElement("button");
+  if(lobby){btn.textContent="Start game";btn.onclick=startGame;}
+  else if(playing){btn.textContent=roomData.revealed?((roomData.roundIndex===3&&roomData.questionIndex===2)?"Finish game":"Next question"):"Reveal answers";btn.onclick=roomData.revealed?nextQuestion:revealAnswers;}
+  else {btn.textContent="Back to home";btn.className="secondary";btn.onclick=leaveRoom;}
+  $("hostControls").appendChild(btn);
+ }
+ renderTeams("lobbyTeams");renderTeams("scoreTeams");
+ if(playing)renderQuestion();
+ if(finished){
+  const scores=sortedTeams();$("finalMessage").innerHTML="<p>Final standings</p>"+scores.map((t,i)=>`<p><strong>${i+1}. ${escapeHtml(t.name)}</strong> — ${t.score} points</p>`).join("");
+ }
+}
+function renderTeams(target){
+ const el=$(target);el.innerHTML="";
+ const players=roomData.players||{};
+ TEAM_IDS.forEach(id=>{
+  const team=(roomData.teams&&roomData.teams[id])||{name:TEAM_NAMES[id],score:0};
+  const members=Object.values(players).filter(p=>p.team===id).map(p=>p.name);
+  const card=document.createElement("div");card.className="team";
+  card.innerHTML=`<strong>${escapeHtml(team.name)}</strong><div class="score">${Number(team.score)||0}</div><div class="muted small">${members.length?members.map(escapeHtml).join(", "):"No players yet"}</div>`;
+  el.appendChild(card);
+ });
+}
+function renderQuestion(){
+ const q=currentQuestion();if(!q)return;
+ $("roundPill").textContent="ROUND "+(roomData.roundIndex+1);
+ $("questionCounter").textContent=`Question ${roomData.questionIndex+1} of ${ROUNDS[roomData.roundIndex].questions.length}`;
+ $("questionText").textContent=q.q;$("questionPrompt").textContent=q.prompt||"";
+ const area=$("optionsArea");area.innerHTML="";
+ const answer=teamAnswer();const already=!!answer;const canAnswer=!isHost&&!roomData.revealed&&!already&&roomData.status==="playing";
+ q.options.forEach((opt,i)=>{
+  const b=document.createElement("button");b.className="option";b.textContent=String.fromCharCode(65+i)+". "+opt;b.disabled=!canAnswer;
+  b.onclick=()=>submitAnswer(i);area.appendChild(b);
+ });
+ show("answerMessage",false);show("revealArea",roomData.revealed);show("hostAnswerSummary",isHost);
+ if(already)setMessage("answerMessage",`Your team has submitted an answer. Submitted by ${answer.submittedBy||"a teammate"}.`);
+ else if(isHost)setMessage("answerMessage","Host controls the game. Students submit one answer per team.");
+ else setMessage("answerMessage","Discuss with your teammates in Google Meet, then submit one answer for your team.");
+ if(roomData.revealed){
+  const reveal=$("revealArea");reveal.innerHTML=`<div class="notice success"><strong>Correct answer:</strong> ${String.fromCharCode(65+q.correct)}. ${escapeHtml(q.options[q.correct])}<br>${escapeHtml(q.explain)}</div>`;
+  const ans=(roomData.answers||{})[questionKey()]||{};
+  $("hostAnswerSummary").innerHTML="<h3>Team submissions</h3>"+TEAM_IDS.map(id=>`<p>${escapeHtml(TEAM_NAMES[id])}: ${ans[id]?escapeHtml(q.options[ans[id].choice])+" — "+(ans[id].choice===q.correct?"Correct":"Incorrect"):"No answer submitted"}</p>`).join("");
+ } else {$("revealArea").innerHTML="";$("hostAnswerSummary").innerHTML="";}
+}
+async function submitAnswer(choice){
+ if(submitting||isHost||!roomData||roomData.revealed||teamAnswer())return;
+ submitting=true;
+ try{
+  const key=questionKey(), answerRef=roomRef.child("answers/"+key+"/"+myTeam);
+  const snap=await answerRef.once("value");if(snap.exists())throw new Error("Your team already submitted an answer.");
+  const q=currentQuestion();const payload={choice:choice,submittedBy:myName,submittedAt:firebase.database.ServerValue.TIMESTAMP};
+  // A transaction prevents two teammates from submitting for the same team simultaneously.
+  const result=await answerRef.transaction(current=>current===null?payload:undefined);
+  if(!result.committed)throw new Error("A teammate submitted first. Your team's answer is locked.");
+  if(choice===q.correct)await roomRef.child("teams/"+myTeam+"/score").transaction(s=> (Number(s)||0)+100);
+ }catch(e){setMessage("answerMessage",e.message||String(e),true);}finally{submitting=false;}
+}
+async function startGame(){await roomRef.update({status:"playing",roundIndex:0,questionIndex:0,revealed:false});}
+async function revealAnswers(){await roomRef.update({revealed:true});}
+async function nextQuestion(){
+ const ri=roomData.roundIndex, qi=roomData.questionIndex;
+ if(qi<ROUNDS[ri].questions.length-1){await roomRef.update({questionIndex:qi+1,revealed:false});}
+ else if(ri<ROUNDS.length-1){await roomRef.update({roundIndex:ri+1,questionIndex:0,revealed:false});}
+ else{await roomRef.update({status:"finished",revealed:true});}
+}
+function sortedTeams(){return TEAM_IDS.map(id=>({id,name:TEAM_NAMES[id],score:Number((roomData.teams&&roomData.teams[id]&&roomData.teams[id].score)||0)})).sort((a,b)=>b.score-a.score);}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function leaveRoom(){
+ if(roomRef&&listener)roomRef.off("value",listener);
+ roomCode=null;roomRef=null;roomData=null;listener=null;isHost=false;myTeam=null;show("gamePanel",false);show("homePanel",true);show("configPanel",true);show("finalPanel",false);
+}
+$("connectBtn").addEventListener("click",connect);
+$("createBtn").addEventListener("click",createRoom);
+$("joinBtn").addEventListener("click",joinRoom);
+$("leaveBtn").addEventListener("click",leaveRoom);
+$("playAgainBtn").addEventListener("click",leaveRoom);
+const saved=localStorage.getItem("chemTeamFirebaseConfig");if(saved)$("configInput").value=saved;
+})();
+</script>
+</body>
+</html>
